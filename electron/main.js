@@ -1,7 +1,8 @@
 // Electron 主进程入口，负责创建窗口和连接 LabVIEW 模拟服务
 const { app, BrowserWindow, ipcMain } = require('electron');
+const { createLabVIEWClient, connectToLabVIEWDataStream } = require('./labviewClient');
+
 const path = require('path');
-const { createLabVIEWClient } = require('./labviewClient');
 
 let mainWindow;
 let socket;
@@ -24,10 +25,20 @@ app.whenReady().then(() => {
   mainWindow.webContents.openDevTools();
 
   // 建立 TCP 客户端连接 LabVIEW 模拟服务
+  // 发送命令：建立发送命令的连接（50000）
   createLabVIEWClient(mainWindow, (_socket) => { socket = _socket; });
+  // 启动监听 LabVIEW 数据推送
+  connectToLabVIEWDataStream(mainWindow);
+
 });
 
 //监听前端 ipcMain.on('labview-send') → 把数据写到 socket 发给 LabVIEW（TCP）
 ipcMain.on('labview-send', (event, msg) => {
-  socket.write(JSON.stringify(msg));
+  if (socket && !socket.destroyed) {
+    console.log('[labview] Sending:', msg);
+    socket.write(JSON.stringify(msg));
+  } else {
+    console.warn('[labview] socket not ready, cannot send:', msg);
+  }
 });
+

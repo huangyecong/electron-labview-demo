@@ -39,6 +39,7 @@ onMounted(() => {
   });
 
   window.labAPI.onData(data => {
+    console.log('APP.vue[前端收到]', data);
     if (data.type === 'response' && data.data.temperature) {
       times.push(new Date(data.data.time).toLocaleTimeString());
       temps.push(data.data.temperature);

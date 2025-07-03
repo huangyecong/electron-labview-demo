@@ -1,23 +1,48 @@
-// TCP 客户端模块，连接 LabVIEW mock 服务，监听数据并发给前端
 const net = require('net');
 
-function createLabVIEWClient(win, callback) {
-  //用 Node.js 的 net.Socket() 创建 TCP 客户端
-  const socket = new net.Socket();
-  
-  // 连接到 127.0.0.1:5000
-  socket.connect(5000, '127.0.0.1', () => console.log('[Electron] Connected to LabVIEW'));
+let commandSocket = null;
 
-  socket.on('data', data => {
-    try {
-      const json = JSON.parse(data.toString());
-      // 接收到服务端返回的数据后，通过webContents.send，发消息给前端（渲染进程）
-      win.webContents.send('labview-data', json);
-    } catch {}
+// 连接 LabVIEW 指令服务（50000）
+function createLabVIEWClient(window, callback) {
+  const socket = net.connect(50000, '127.0.0.1', () => {
+    console.log('[labview] Connected to LabVIEW control port (50000)');
+    commandSocket = socket;
+    if (callback) callback(socket);
   });
 
-  socket.on('error', err => console.error('[Electron] Socket error', err));
-  callback(socket);
+  socket.on('error', (err) => {
+    console.error('[labview] Control socket error:', err);
+  });
+
+  socket.on('end', () => {
+    console.log('[labview] Control socket disconnected');
+  });
 }
 
-module.exports = { createLabVIEWClient };
+// 连接 LabVIEW 数据推送服务（50001）
+function connectToLabVIEWDataStream(window) {
+  const socket = net.connect(50001, '127.0.0.1', () => {
+    console.log('[labview] Connected to LabVIEW 数据推送端口 (50001)');
+  });
+
+  socket.on('data', (data) => {
+    const lines = data.toString().split('\n').filter(Boolean);
+    lines.forEach(line => {
+      try {
+        const parsed = JSON.parse(line);
+        console.log('[labview] Received from LabVIEW:', parsed);
+        window.webContents.send('labview-data', parsed);
+      } catch (err) {
+        console.error('[labview] JSON parse error', err);
+      }
+    });
+  });
+
+  socket.on('error', err => console.error('[labview] socket error:', err));
+  socket.on('end', () => console.log('[labview] 数据推送断开连接'));
+}
+
+module.exports = {
+  createLabVIEWClient,
+  connectToLabVIEWDataStream
+};
