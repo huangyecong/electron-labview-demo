@@ -1,10 +1,12 @@
 const net = require('net');
 
 let commandSocket = null;
+const LABVIEW_HOST = '127.0.0.1'; // 真实 LabVIEW IP
+
 
 // 连接 LabVIEW 指令服务（50000）
 function createLabVIEWClient(window, callback) {
-  const socket = net.connect(50000, '127.0.0.1', () => {
+  const socket = net.connect(50000, LABVIEW_HOST, () => {
     console.log('[labview] Connected to LabVIEW control port (50000)');
     commandSocket = socket;
     if (callback) callback(socket);
@@ -21,7 +23,7 @@ function createLabVIEWClient(window, callback) {
 
 // 连接 LabVIEW 数据推送服务（50001）
 function connectToLabVIEWDataStream(window) {
-  const socket = net.connect(50001, '127.0.0.1', () => {
+  const socket = net.connect(50001, LABVIEW_HOST, () => {
     console.log('[labview] Connected to LabVIEW 数据推送端口 (50001)');
   });
 

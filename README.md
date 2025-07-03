@@ -10,7 +10,7 @@ Electron + Vue + ElementUI + Mock + Labview + Node.js
 <!-- 安装依赖包 -->
 npm install
 
-<!-- 启动mock服务器 -->
+<!-- 启动mock服务器(可选，真实运行时请关闭) -->
 node mock-labview-server.js
 
 <!-- 启动项目 -->

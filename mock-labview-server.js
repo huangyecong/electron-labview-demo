@@ -29,14 +29,6 @@ commandServer.listen(50000, () => {
 const dataPushServer = net.createServer((socket) => {
   console.log('[LabVIEW模拟] Electron 开始监听 50001');
 
-  // const interval = setInterval(() => {
-  //   const mockData = {
-  //     time: Date.now(),
-  //     temperature: +(Math.random() * 10 + 20).toFixed(2),
-  //     pressure: +(Math.random() * 0.5 + 1).toFixed(2)
-  //   };
-  //   socket.write(JSON.stringify(mockData) + '\n');
-  // }, 50);
   // 发送的数据格式包一层
   const interval = setInterval(() => {
   const payload = {
