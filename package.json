@@ -1,0 +1,22 @@
+{
+  "name": "electron-labview-demo-v2",
+  "version": "1.0.0",
+  "main": "electron/main.js",
+  "scripts": {
+    "serve": "vite",
+    "build": "vite build",
+    "electron": "electron .",
+    "start": "concurrently \"npm:mock-server\" \"npm:serve\" \"npm:electron\"",
+    "mock-server": "node mock-labview-server.js"
+  },
+  "dependencies": {
+    "electron": "^25.0.0",
+    "vue": "^3.2.0",
+    "echarts": "^5.4.0"
+  },
+  "devDependencies": {
+    "vite": "^4.0.0",
+    "@vitejs/plugin-vue": "^4.0.0",
+    "concurrently": "^7.6.0"
+  }
+}
