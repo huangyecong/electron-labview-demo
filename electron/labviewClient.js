@@ -43,22 +43,30 @@ function connectToLabVIEWDataStream(window) {
 
   // 当 socket 接收到数据：
   socket.on('data', (data) => {
-    console.log('[labview] Received from LabVIEW datadata:', data)
-    // 将 buffer 转为字符串，按行 \n 分割
-    const lines = data.toString().split('\n').filter(Boolean)
+    if (socket.destroyed) {
+      console.warn('[labview] socket destroyed, ignore data')
+      return
+    }
+    try {
+      console.log('[labview] Received from LabVIEW datadata:', data)
+      // 将 buffer 转为字符串，按行 \n 分割
+      const lines = data.toString().split('\n').filter(Boolean)
 
-    // 遍历每一行
-    const parsedData = {}
-    lines.forEach((line) => {
-      const [key, value] = line.split(':')
-      if (key && value) {
-        parsedData[key.trim()] = parseFloat(value.trim());
-      }
-    })
+      // 遍历每一行
+      const parsedData = {}
+      lines.forEach((line) => {
+        const [key, value] = line.split(':')
+        if (key && value) {
+          parsedData[key.trim()] = parseFloat(value.trim())
+        }
+      })
 
-    console.log('[labview] ✅ 解析成功:', parsedData);
-    // 发送给前端渲染
-    window.webContents.send('labview-data', parsedData)
+      console.log('[labview] ✅ 解析成功:', parsedData)
+      // 发送给前端渲染
+      window.webContents.send('labview-data', parsedData)
+    } catch (error) {
+      console.error('[labview] data parse error:', err)
+    }
   })
 
   // 监听错误和断开连接的情况
