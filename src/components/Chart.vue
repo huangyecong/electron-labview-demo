@@ -1,7 +1,7 @@
 <template>
   <div>
-    <h2>LabVIEW 实时数据图表</h2>
-    <div ref="chart" style="width: 800px; height: 400px; margin-top: 20px;"></div>
+    <h2>LabVIEW 实时多参数图表</h2>
+    <div ref="chart" style="width: 100%; height: 500px; margin-top: 20px;"></div>
   </div>
 </template>
 
@@ -11,44 +11,63 @@ import * as echarts from 'echarts'
 
 const chart = ref(null)
 let myChart
+const MAX_POINTS = 50
 
-const times = []      // 时间戳（x轴）
-const temps = []      // input_temperature（y轴）
-const MAX_POINTS = 50 // 最多展示的数据点数
+// x轴时间数组
+const timeLabels = []
 
+// 每条曲线的历史数据
+const dataSeries = {
+  input_temperature: [],
+  output_temperature: [],
+  ph: [],
+  pressure: [],
+  reactor_temperature: [],
+  room_temperature: [],
+  weight: []
+}
+
+// 初始化图表
 onMounted(() => {
   myChart = echarts.init(chart.value)
+
+  const series = Object.keys(dataSeries).map((key) => ({
+    name: key.replace(/_/g, ' '),
+    type: 'line',
+    data: dataSeries[key],
+    smooth: true
+  }))
+
   myChart.setOption({
-    title: { text: 'Input Temperature 曲线图' },
-    xAxis: { type: 'category', data: times },
+    // title: { text: 'LabVIEW 实时数据曲线图' },
+    tooltip: { trigger: 'axis' },
+    legend: { data: series.map(s => s.name) },
+    xAxis: { type: 'category', data: timeLabels },
     yAxis: { type: 'value' },
-    series: [{
-      name: 'Input Temp',
-      type: 'line',
-      data: temps,
-      smooth: true
-    }]
+    series
   })
 
-  // 监听 LabVIEW 推送的数据
+  // 接收数据事件
   window.labAPI?.onData((data) => {
-    const temp = data.input_temperature
-    const label = new Date().toLocaleTimeString()
+    const time = new Date().toLocaleTimeString()
+    timeLabels.push(time)
+    if (timeLabels.length > MAX_POINTS) timeLabels.shift()
 
-    if (typeof temp === 'number') {
-      times.push(label)
-      temps.push(temp)
-
-      if (times.length > MAX_POINTS) {
-        times.shift()
-        temps.shift()
+    Object.keys(dataSeries).forEach((key) => {
+      const val = parseFloat(data[key])
+      if (!isNaN(val)) {
+        dataSeries[key].push(val)
+        if (dataSeries[key].length > MAX_POINTS) dataSeries[key].shift()
       }
+    })
 
-      myChart.setOption({
-        xAxis: { data: times },
-        series: [{ data: temps }]
-      })
-    }
+    myChart.setOption({
+      xAxis: { data: timeLabels },
+      series: Object.keys(dataSeries).map((key) => ({
+        name: key.replace(/_/g, ' '),
+        data: dataSeries[key]
+      }))
+    })
   })
 })
 </script>
