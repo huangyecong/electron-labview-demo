@@ -14,19 +14,23 @@
 
     <div class="command">
       <label>值：</label>
-      <input v-model="val" placeholder="请输入数值或ON/OFF" />
+      <input v-model="inputval" placeholder="请输入数值或ON/OFF" />
     </div>
 
-    <button @click="sendCommand">发送指令</button>
+    <button @click="sendCommand">Electron 向 Labview 发送指令</button>
+    <hr />
 
     <div class="labview-data">
-      <h3>LabVIEW 实时数据</h3>
+      <h3>LabVIEW 返回给 Electron的实时数据</h3>
       <ul>
         <li v-for="(value, key) in labData" :key="key">
           {{ key }}: {{ value }}
         </li>
       </ul>
     </div>
+    
+    <hr />
+    <Chart />
 
     <!-- <hr />
     整体流程:
@@ -41,20 +45,21 @@
 
 <script setup>
 import { reactive, ref, onMounted } from 'vue'
+import Chart from './components/Chart.vue'
 
 const field = ref('cyclic_temperature')
-const val = ref('')
+const inputval = ref('')
 
 const labData = reactive({})
 const sendCommand = () => {
-  if (!val.value) {
+  if (!inputval.value) {
     alert('请输入值')
     return
   }
 
   // 调用 preload.js 暴露的方法
-  window.labview?.sendCommand(field.value, val.value)
-  alert(`已发送：${field.value}:${val.value};`)
+  window.labview?.sendCommand(field.value, inputval.value)
+  alert(`已发送：${field.value}:${inputval.value};`)
 }
 
 onMounted(() => {
