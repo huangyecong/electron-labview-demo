@@ -1,52 +1,90 @@
 <template>
-  <div>
-    <h2>化学反应控制台</h2>
-    <button @click="startReaction">开始反应</button>
-    <button @click="queryStatus">查询设备状态</button>
-    <div ref="chart" style="width:800px;height:400px;margin-top:20px;"></div>
+  <div class="labview-control">
+    <h2>LabVIEW 控制面板</h2>
+
+    <div class="command">
+      <label>控制项：</label>
+      <select v-model="field">
+        <option value="peristaltic_pump">peristaltic_pump</option>
+        <option value="weight_zero">weight_zero</option>
+        <option value="stir_enable">stir_enable</option>
+        <option value="cyclic_temperature">cyclic_temperature</option>
+      </select>
+    </div>
+
+    <div class="command">
+      <label>值：</label>
+      <input v-model="val" placeholder="请输入数值或ON/OFF" />
+    </div>
+
+    <button @click="sendCommand">发送指令</button>
+
+    <div class="labview-data">
+      <h3>LabVIEW 实时数据</h3>
+      <ul>
+        <li v-for="(value, key) in labData" :key="key">
+          {{ key }}: {{ value }}
+        </li>
+      </ul>
+    </div>
+
+    <!-- <hr />
+    整体流程:
+    <ul>
+      <div>1. Vue 页面点击按钮 → window.labview.sendCommand(...)</div>
+      <div>2. preload.js 中 ipcRenderer.send('labview-command', {...})</div>
+      <div>3. Electron 主进程监听 ipcMain.on('labview-command')，调用 sendLabVIEWCommand(...)</div>
+      <div>4. 后端通过 TCP socket 发送指令（如 cyclic_temperature:100;）给 LabVIEW 50000 端口</div>
+    </ul> -->
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
-import * as echarts from 'echarts';
+import { reactive, ref, onMounted } from 'vue'
 
-const chart = ref(null);
-let myChart;
-const times = [], temps = [];
+const field = ref('cyclic_temperature')
+const val = ref('')
 
-// “开始反应” → 向 LabVIEW 发送 start_reaction 指令
-function startReaction() {
-  window.labAPI.send({
-    type: 'command',
-    action: 'start_reaction',
-    steps: [{time:0,chemical:'H2O',amount:5},{time:10,chemical:'NaCl',amount:2}]
-  });
-}
+const labData = reactive({})
+const sendCommand = () => {
+  if (!val.value) {
+    alert('请输入值')
+    return
+  }
 
-// “查询状态” → 发送 get_status 请求
-function queryStatus() {
-  window.labAPI.send({ type: 'query', action: 'get_status' });
+  // 调用 preload.js 暴露的方法
+  window.labview?.sendCommand(field.value, val.value)
+  alert(`已发送：${field.value}:${val.value};`)
 }
 
 onMounted(() => {
-  myChart = echarts.init(chart.value);
-  myChart.setOption({
-    title: { text: '温度曲线' },
-    xAxis: { data: times, type: 'category' },
-    yAxis: { type: 'value' },
-    series: [{ name: '温度', type: 'line', data: temps }]
-  });
-
-  window.labAPI.onData(data => {
-    console.log('APP.vue[前端收到]', data);
-    if (data.type === 'response' && data.data.temperature) {
-      times.push(new Date(data.data.time).toLocaleTimeString());
-      temps.push(data.data.temperature);
-      myChart.setOption({ xAxis: { data: times }, series: [{ data: temps }] });
-    } else {
-      console.log('[收到其他数据]', data);
-    }
-  });
-});
+  // 监听 labview-data 事件（每次 50ms 推送一次）
+  if (window.labAPI?.onData) {
+    window.labAPI.onData((data) => {
+      console.log('前端收到Labview数据 👉', data);
+      // data 是主进程转发过来的解析结果：一个对象
+      // 示例：{ pressure: '0.00', reactor_temperature: '0.00', ... }
+      // Object.assign(labData, data) // 更新 labData
+      labData.value = data;
+    })
+  } else {
+    console.warn('labAPI.onData is not available')
+  }
+})
 </script>
+
+<style scoped>
+.labview-control {
+  padding: 20px;
+  font-family: sans-serif;
+}
+
+.command {
+  margin-bottom: 10px;
+}
+
+.labview-data {
+  padding: 16px;
+  font-family: monospace;
+}
+</style>

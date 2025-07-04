@@ -1,8 +1,9 @@
 // Electron 主进程入口，负责创建窗口和连接 LabVIEW 模拟服务
 const { app, BrowserWindow, ipcMain } = require('electron');
-const { createLabVIEWClient, connectToLabVIEWDataStream } = require('./labviewClient');
+const { createLabVIEWClient, sendLabVIEWCommand,connectToLabVIEWDataStream } = require('./labviewClient');
 
 const path = require('path');
+const { ipcRenderer } = require('electron/renderer');
 
 let mainWindow;
 let socket;
@@ -36,9 +37,14 @@ app.whenReady().then(() => {
 ipcMain.on('labview-send', (event, msg) => {
   if (socket && !socket.destroyed) {
     console.log('[labview] Sending:', msg);
-    socket.write(JSON.stringify(msg));
+    socket.write(msg);
   } else {
     console.warn('[labview] socket not ready, cannot send:', msg);
   }
+});
+
+// 监听前端 ipcMain.on('labview-command') → 发送命令给 LabVIEW
+ipcMain.on('labview-command', (event, { field, value }) => {
+  sendLabVIEWCommand(field, value);
 });
 
