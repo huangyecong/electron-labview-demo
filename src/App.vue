@@ -69,8 +69,7 @@ onMounted(() => {
       console.log('前端收到Labview数据 👉', data);
       // data 是主进程转发过来的解析结果：一个对象
       // 示例：{ pressure: '0.00', reactor_temperature: '0.00', ... }
-      // Object.assign(labData, data) // 更新 labData
-      labData.value = data;
+      labData.value = data;// 更新 labData
     })
   } else {
     console.warn('labAPI.onData is not available')
